@@ -1,0 +1,10 @@
+casadi
+sympy
+numpy
+matplotlib
+scipy
+control      # python-control: LQR, Bode, root locus
+do-mpc       # MPC framework on top of CasADi
+pyserial     # communication with the Arduino
+pyyaml       # parameter files
+pyqtgraph    # live plots (also needs PyQt5 or PySide6)
