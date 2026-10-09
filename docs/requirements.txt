@@ -1,5 +1,6 @@
 casadi
 sympy
+pytest
 numpy
 matplotlib
 scipy

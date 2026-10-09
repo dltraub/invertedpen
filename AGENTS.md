@@ -3,7 +3,7 @@
 In this project I want to simulate an inverted pendulum on a cart with the goal of playing with and testing control systems. I want to set up a running simulation and based thereon decide on mechanical system architecture to build the system in real and run it on a microcontroller.
 
 ## Software Design
-The main programming language is Python.
+The main programming language is Python. Selected interpreter should be in the local conda env 'invpen', which contains all packages specified in requirements.txt.
 I want to derive the equations of motion symbolically with SymPy (sympy.physics.mechanics, Lagrange or Kane). For numerics, automatic differentiation, integrators, NLP, eventual C code generation for the real system I want to use CasADI. Linearization, LQR and analysis can be done with SciPy.
 Define every plant as a continuous-time system
 
