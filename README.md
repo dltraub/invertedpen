@@ -23,6 +23,7 @@ The primary entry point is the installed console script:
 ```bash
 invertedpen --help
 invertedpen smoke-test
+invertedpen simulate --steps 100 --dt 0.01
 ```
 
 The equivalent module entry point is useful when selecting an interpreter
@@ -31,15 +32,41 @@ explicitly or debugging:
 ```bash
 python -m invertedpen --help
 python -m invertedpen smoke-test
+python -m invertedpen simulate --steps 100 --dt 0.01
 ```
 
 Both commands delegate to the same CLI implementation. Future simulation,
 plotting, and experiment commands should be added as CLI subcommands rather
 than as standalone source-file entry points.
 
-`src/scripts/maintest.py` is retained as exploratory code. It is not the
-project entry point; if run directly, it expects the package to have been
-installed first.
+The `simulate` command constructs the model and application, then runs a
+bounded deterministic loop. The loop uses explicit `INIT`, `BALANCE`, `STOP`,
+and `ERROR` states. The CLI is only responsible for parsing options and
+starting the application; orchestration belongs under `src/invertedpen/app/`.
+
+The initial state can be supplied as four values in the project state order
+`[x, theta, x_dot, theta_dot]`:
+
+```bash
+python -m invertedpen simulate \
+  --steps 100 \
+  --initial-state 0.0 0.1 0.0 0.0
+```
+
+Alternatively, set only selected components; unspecified components remain
+zero:
+
+```bash
+python -m invertedpen simulate \
+  --steps 100 \
+  --initial-theta 0.1 \
+  --initial-x-dot 0.2
+```
+
+The individual options are `--initial-x`, `--initial-theta`,
+`--initial-x-dot`, and `--initial-theta-dot`. If both forms are used, the
+individual options override the corresponding values from `--initial-state`.
+
 
 ## Testing
 

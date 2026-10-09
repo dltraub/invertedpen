@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import Any
 
 import sympy as sp
-
+import numpy as np
 import casadi as ca
 
 

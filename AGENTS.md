@@ -50,6 +50,19 @@ The first control subproblem is to perform balance control around an upright equ
 ## Animation
 I want a way to view animated simulation runs offline. Matplotlib FuncAnimation could be useful. Visualization should be a stand-alone module independent from dynamics.
 
+## Logging
+
+One HDF5 or Parquet file per experiment series, plus a SQLite or CSV index of runs.
+What to log:
+Trajectories
+Full configuration (all parameters, model choice, controller settings, weights, horizon, sample time) as JSON/YAML
+Random seed(s)
+Git commit hash and whether the working tree was dirty
+Timestamp and a descriptive tag
+Use a logger object with a log(step, **signals) interface and have it write to the backend of your choice. That keeps simulation code independent of the storage format, which fits your goal of swapping models easily.
+Buffer in memory and write once at the end of a run, rather than writing row by row.
+Store units and signal names in the metadata, not just in your head.
+
 ## Planning
 
 Don't implement anything yet. Help me identify missing requirements and ambiguities.

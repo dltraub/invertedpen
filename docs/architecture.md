@@ -14,6 +14,21 @@ configuration
     -> offline analysis and visualization
 ```
 
+The process entry-point flow is:
+
+```text
+python -m invertedpen
+    -> __main__.py
+    -> cli.main()
+    -> application.run()
+    -> explicit state machine and deterministic loop
+```
+
+`__main__.py` is a thin module launcher. `cli.py` parses command-line arguments
+and constructs the application, similar to the responsibility of a C `main`
+function. The application layer owns orchestration; it should not be embedded
+in the CLI parser.
+
 Every plant implements the common continuous-time contract:
 
 ```text
@@ -32,6 +47,9 @@ metadata and, where meaningful, energy and linearization functions.
   scripts.
 - **Simulation** advances a plant and records state, input, output, time, and
   diagnostics. The initial simulator uses fixed-step RK4 and zero-order-held inputs.
+- **Application** coordinates one run through explicit `INIT`, `BALANCE`, `STOP`,
+  and `ERROR` states. The initial loop is bounded and deterministic for offline
+  simulation; real-time scheduling is a later boundary.
 - **Control** consumes a model contract and sampled state/output data. The first
   controller is discrete-time LQR around the upright cart-pole equilibrium.
 - **Estimation** is a later layer. Ideal physical outputs remain distinct from
