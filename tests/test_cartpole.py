@@ -1,7 +1,7 @@
 import numpy as np
 import sympy as sp
 
-from src.models.cartpole import CartPoleModel, CartPoleParameters
+from invertedpen.models.cartpole import CartPoleModel, CartPoleParameters
 
 
 def make_model() -> CartPoleModel:
