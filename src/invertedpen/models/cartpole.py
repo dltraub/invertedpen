@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+import numpy as np
 import sympy as sp
 import numpy as np
 import casadi as ca
@@ -152,6 +153,13 @@ class CartPoleModel:
         """Evaluate ``xdot = f(x, u, p)``."""
 
         return self._dynamics(state, control)
+
+    def normalize_state(self, state: Any) -> np.ndarray:
+        """Wrap the pendulum angle into the interval ``(-pi, pi]``."""
+
+        normalized = np.asarray(state, dtype=float).copy()
+        normalized[1] = (normalized[1] + np.pi) % (2 * np.pi) - np.pi
+        return normalized
 
     def output(self, state: Any) -> Any:
         """Evaluate the ideal full-state output ``y = h(x, p)``."""

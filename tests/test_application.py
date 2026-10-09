@@ -33,6 +33,18 @@ def test_run_is_bounded_by_configured_step_count() -> None:
     assert trajectory.shape == (1, 4)
 
 
+def test_initial_and_recorded_states_use_normalized_theta() -> None:
+    model = CartPoleModel(CartPoleParameters(1.0, 0.2, 0.5))
+    application = SimulationApplication(
+        model,
+        SimulationConfig(initial_state=np.array([0.0, 3 * np.pi, 0.0, 0.0]), steps=1),
+    )
+
+    trajectory = application.run()
+
+    assert np.all((-np.pi <= trajectory[:, 1]) & (trajectory[:, 1] < np.pi))
+
+
 def test_invalid_transition_is_rejected() -> None:
     application = make_application()
 

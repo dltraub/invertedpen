@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 import sympy as sp
 
 from invertedpen.models.cartpole import CartPoleModel, CartPoleParameters
@@ -29,6 +30,28 @@ def test_output_is_full_state() -> None:
     model = make_model()
     state = np.array([0.1, -0.2, 0.3, -0.4])
     np.testing.assert_allclose(np.asarray(model.output(state)).reshape(-1), state)
+
+
+@pytest.mark.parametrize(
+    ("angle", "expected"),
+    [
+        (-3 * np.pi, -np.pi),
+        (-np.pi, -np.pi),
+        (np.pi, -np.pi),
+        (3 * np.pi, -np.pi),
+        (0.25, 0.25),
+    ],
+)
+def test_normalize_state_wraps_theta_to_negative_pi_inclusive_interval(
+    angle: float, expected: float
+) -> None:
+    model = make_model()
+    state = np.array([1.0, angle, 2.0, 3.0])
+
+    normalized = model.normalize_state(state)
+
+    np.testing.assert_allclose(normalized, [1.0, expected, 2.0, 3.0])
+    assert -np.pi <= normalized[1] < np.pi
 
 
 def test_euler_lagrange_derivation_has_expected_force_balance() -> None:

@@ -22,6 +22,9 @@ class ContinuousPlant(Protocol):
     def dynamics(self, state: np.ndarray, control: np.ndarray) -> object:
         """Return the continuous-time state derivative."""
 
+    def normalize_state(self, state: np.ndarray) -> np.ndarray:
+        """Return a canonical representation of the state."""
+
 
 @dataclass(frozen=True)
 class SimulationConfig:
@@ -69,7 +72,9 @@ class SimulationApplication:
     ) -> None:
         self.model = model
         self.config = config
-        self.current_state = np.asarray(config.initial_state, dtype=float).copy()
+        self.current_state = model.normalize_state(
+            np.asarray(config.initial_state, dtype=float).copy()
+        )
         if self.current_state.shape != (model.state_size,):
             raise ValueError(
                 f"initial_state must have shape ({model.state_size},), "
@@ -109,6 +114,7 @@ class SimulationApplication:
                 self.current_state = _rk4_step(
                     self.model, self.current_state, control, self.config.dt
                 )
+                self.current_state = self.model.normalize_state(self.current_state)
                 self.trajectory.append(self.current_state.copy())
             self.transition_to(ApplicationState.STOP)
         except Exception:
