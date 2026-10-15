@@ -10,6 +10,7 @@ import numpy as np
 from . import __version__
 from .app import SimulationApplication, SimulationConfig
 from .models.cartpole import CartPoleModel, CartPoleParameters
+from .simulation_logging import SimulationLogger
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -35,6 +36,9 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     simulate.add_argument("--steps", type=int, default=100)
     simulate.add_argument("--dt", type=float, default=0.01)
+    simulate.add_argument("--tag", default="simulation")
+    simulate.add_argument("--log-dir", default="artifacts/runs")
+    simulate.add_argument("--no-log", action="store_true")
     simulate.add_argument(
         "--initial-state",
         nargs=4,
@@ -101,19 +105,45 @@ def _build_initial_state(args: argparse.Namespace) -> np.ndarray:
 
 
 def _run_simulation(args: argparse.Namespace) -> int:
+    model = _make_default_model()
+    logger = None
+    if not args.no_log:
+        logger = SimulationLogger(
+            args.log_dir,
+            tag=args.tag,
+            metadata={
+                "model": "cartpole",
+                "parameters": vars(model.parameters),
+                "simulation": {"dt": args.dt, "steps": args.steps},
+                "initial_state": _build_initial_state(args),
+            },
+            signal_metadata={
+                "time": {"unit": "s", "description": "simulation time"},
+                "state": {
+                    "unit": "SI",
+                    "description": "[x, theta, x_dot, theta_dot]",
+                },
+                "input": {"unit": "N", "description": "ideal horizontal force"},
+                "output": {"unit": "SI", "description": "ideal plant output"},
+                "energy.total": {"unit": "J", "description": "total mechanical energy"},
+            },
+        )
     application = SimulationApplication(
-        _make_default_model(),
+        model,
         SimulationConfig(
             initial_state=_build_initial_state(args),
             steps=args.steps,
             dt=args.dt,
         ),
+        logger=logger,
     )
     trajectory = application.run()
     print(
         f"simulation complete; steps={args.steps}, dt={args.dt:g}, "
         f"final_state={trajectory[-1]}"
     )
+    if logger is not None:
+        print(f"log={logger.run_path}")
     return 0
 
 

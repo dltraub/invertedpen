@@ -74,3 +74,19 @@ def test_run_enters_error_state_when_a_step_fails() -> None:
         application.run()
 
     assert application.state is ApplicationState.ERROR
+
+
+def test_run_logs_common_samples_and_final_held_input(tmp_path) -> None:
+    from invertedpen.simulation_logging import SimulationLogger, load_run
+
+    logger = SimulationLogger(tmp_path, tag="application")
+    application = make_application(steps=2)
+    application.logger = logger
+    application.controller = lambda _state: np.array([2.0])
+
+    application.run()
+
+    _, arrays = load_run(logger.run_path)
+    assert arrays["time"].shape == (3,)
+    assert arrays["state"].shape == (3, 4)
+    np.testing.assert_allclose(arrays["input"], [[2.0], [2.0], [2.0]])

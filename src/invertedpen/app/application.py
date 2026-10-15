@@ -9,6 +9,7 @@ from typing import Protocol
 import numpy as np
 
 from .state_machine import ApplicationState, StateMachineError
+from ..simulation_logging import SimulationLogger
 
 Controller = Callable[[np.ndarray], np.ndarray]
 
@@ -69,6 +70,7 @@ class SimulationApplication:
         model: ContinuousPlant,
         config: SimulationConfig,
         controller: Controller | None = None,
+        logger: SimulationLogger | None = None,
     ) -> None:
         self.model = model
         self.config = config
@@ -85,6 +87,7 @@ class SimulationApplication:
         )
         self.state = ApplicationState.INIT
         self.trajectory: list[np.ndarray] = []
+        self.logger = logger
 
     def transition_to(self, target: ApplicationState) -> None:
         allowed = {
@@ -107,17 +110,46 @@ class SimulationApplication:
         self.trajectory = [self.current_state.copy()]
         try:
             self.transition_to(ApplicationState.BALANCE)
-            for _ in range(self.config.steps):
+            for step in range(self.config.steps + 1):
+                if step == self.config.steps:
+                    if self.config.steps == 0:
+                        control = np.zeros(self.model.input_size, dtype=float)
+                    else:
+                        control = previous_control
+                    if self.logger is not None:
+                        self._log_sample(step, control)
+                    break
                 control = np.asarray(
                     self.controller(self.current_state), dtype=float
                 ).reshape(self.model.input_size)
+                if self.logger is not None:
+                    self._log_sample(step, control)
+                previous_control = control
                 self.current_state = _rk4_step(
                     self.model, self.current_state, control, self.config.dt
                 )
                 self.current_state = self.model.normalize_state(self.current_state)
                 self.trajectory.append(self.current_state.copy())
             self.transition_to(ApplicationState.STOP)
-        except Exception:
+            if self.logger is not None:
+                self.logger.finalize()
+        except Exception as exception:
             self.state = ApplicationState.ERROR
+            if self.logger is not None and self.logger.run_path is None:
+                self.logger.finalize(status="incomplete", error=exception)
             raise
         return np.asarray(self.trajectory)
+
+    def _log_sample(self, step: int, control: np.ndarray) -> None:
+        signals: dict[str, object] = {
+            "time": step * self.config.dt,
+            "state": self.current_state,
+            "input": control,
+        }
+        output = getattr(self.model, "output", None)
+        if output is not None:
+            signals["output"] = output(self.current_state)
+        energy = getattr(self.model, "energy", None)
+        if energy is not None:
+            signals["energy.total"] = energy(self.current_state)
+        self.logger.log(step, **signals)

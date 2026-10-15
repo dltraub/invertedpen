@@ -21,7 +21,7 @@ def test_cli_smoke_test(capsys) -> None:
 
 
 def test_cli_simulate(capsys) -> None:
-    assert main(["simulate", "--steps", "3"]) == 0
+    assert main(["simulate", "--steps", "3", "--no-log"]) == 0
     output = capsys.readouterr().out
     assert "simulation complete; steps=3" in output
 
@@ -32,6 +32,7 @@ def test_full_initial_state_option(capsys) -> None:
             "simulate",
             "--steps",
             "0",
+            "--no-log",
             "--initial-state",
             "1",
             "2",
@@ -44,7 +45,10 @@ def test_full_initial_state_option(capsys) -> None:
 
 
 def test_individual_initial_state_options_leave_other_values_at_zero(capsys) -> None:
-    assert main(["simulate", "--steps", "0", "--initial-theta", "0.25"]) == 0
+    assert (
+        main(["simulate", "--steps", "0", "--no-log", "--initial-theta", "0.25"])
+        == 0
+    )
 
     assert "final_state=[0.   0.25 0.   0.  ]" in capsys.readouterr().out
 

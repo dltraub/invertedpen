@@ -2,6 +2,10 @@
 # Project Goal
 In this project I want to simulate an inverted pendulum on a cart with the goal of playing with and testing control systems. I want to set up a running simulation and based thereon decide on mechanical system architecture to build the system in real and run it on a microcontroller.
 
+## Python environment
+The environment in which this project runs is conda "invpen"
+conda activate invpen
+
 ## Software Design
 The main programming language is Python. Selected interpreter should be in the local conda env 'invpen', which contains all packages specified in requirements.txt.
 I want to derive the equations of motion symbolically with SymPy (sympy.physics.mechanics, Lagrange or Kane). For numerics, automatic differentiation, integrators, NLP, eventual C code generation for the real system I want to use CasADI. Linearization, LQR and analysis can be done with SciPy.
@@ -52,7 +56,8 @@ I want a way to view animated simulation runs offline. Matplotlib FuncAnimation 
 
 ## Logging
 
-One HDF5 or Parquet file per experiment series, plus a SQLite or CSV index of runs.
+Goal: I want a logging module that saves simulation data so that it can later be used for plots, for example with matplotlib. I am unexperienced in logging and don't know which method to use. 
+The simulations should be logged by default with a flag option to run the sim without logging.
 What to log:
 Trajectories
 Full configuration (all parameters, model choice, controller settings, weights, horizon, sample time) as JSON/YAML
