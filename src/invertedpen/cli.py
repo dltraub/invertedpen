@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import argparse
+import json
 from collections.abc import Sequence
+from pathlib import Path
 
 import numpy as np
 
@@ -67,7 +69,75 @@ def _build_parser() -> argparse.ArgumentParser:
     simulate.add_argument(
         "--initial-theta-dot", type=float, help="set initial pendulum angular velocity"
     )
+    animate = subparsers.add_parser("animate", help="animate a persisted simulation run")
+    animate.add_argument("--tag", help="run tag; defaults to the most recent run")
+    animate.add_argument("--log-dir", default="artifacts/runs")
+    animate.add_argument("--fps", type=float, default=30.0)
+    animate.add_argument("--speed", type=float, default=1.0)
+    animate.add_argument("--camera", choices=("fixed", "follow"), default="fixed")
+    plot = subparsers.add_parser(
+        "plot",
+        help="plot trajectories from a persisted simulation run",
+    )
+    plot.add_argument("--tag", help="run tag; defaults to the most recent run")
+    plot.add_argument("--log-dir", default="artifacts/runs")
+    plot.add_argument(
+        "--separate-windows",
+        action="store_true",
+        help="show each plotted signal in its own window",
+    )
     return parser
+
+
+def _find_run(log_dir: str | Path, tag: str | None) -> Path:
+    candidates = []
+    for path in Path(log_dir).iterdir():
+        if not path.is_dir() or not (path / "metadata.json").is_file():
+            continue
+        if tag is not None:
+            try:
+                with (path / "metadata.json").open(encoding="utf-8") as file:
+                    metadata = json.load(file)
+            except (OSError, json.JSONDecodeError):
+                continue
+            if metadata.get("tag") != tag:
+                continue
+        candidates.append(path)
+    if not candidates:
+        description = f" with tag {tag!r}" if tag is not None else ""
+        raise FileNotFoundError(f"no simulation runs found{description} in {log_dir}")
+    return max(candidates, key=lambda path: path.stat().st_mtime)
+
+
+def _run_animation(args: argparse.Namespace) -> int:
+    from .animate_pendulum import animate
+    from .simulation_logging import load_run
+    import matplotlib.pyplot as plt
+
+    run_path = _find_run(args.log_dir, args.tag)
+    _metadata, arrays = load_run(run_path)
+    if "time" not in arrays or "state" not in arrays:
+        raise ValueError("run must contain 'time' and 'state' signals")
+    parameters = _metadata.get("configuration", {}).get("parameters", {})
+    length = parameters.get("pendulum_length", 0.5)
+    animation = animate(
+        arrays["time"],
+        arrays["state"],
+        float(length),
+        fps=args.fps,
+        speed=args.speed,
+        camera=args.camera,
+    )
+    print(f"animating run={run_path}")
+    plt.show()
+    return 0
+
+
+def _run_plot(args: argparse.Namespace) -> int:
+    run_path = _find_run(args.log_dir, args.tag)
+    plotting.plot_run(run_path, separate_windows=args.separate_windows)
+    print(f"plotted run={run_path}")
+    return 0
 
 
 def _run_smoke_test() -> int:
@@ -170,5 +240,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         return _run_smoke_test()
     if args.command == "simulate":
         return _run_simulation(args)
+    if args.command == "animate":
+        return _run_animation(args)
+    if args.command == "plot":
+        return _run_plot(args)
     parser.print_help()
     return 0

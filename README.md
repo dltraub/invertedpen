@@ -86,6 +86,22 @@ zero-order-hold convention:
 `input[k]` is held over the interval from `time[k]` to `time[k+1]`; the final
 sample repeats the last held input.
 
+Previously saved runs can be plotted without starting a simulation. By default,
+`plot` selects the most recent run:
+
+```bash
+python -m invertedpen plot
+```
+
+Select a tag and log directory explicitly, and optionally use separate windows:
+
+```bash
+python -m invertedpen plot \
+  --tag balance-test \
+  --log-dir artifacts/runs \
+  --separate-windows
+```
+
 
 ## Testing
 
