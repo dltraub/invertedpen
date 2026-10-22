@@ -19,6 +19,7 @@ from matplotlib.animation import FFMpegWriter, FuncAnimation, PillowWriter
 from matplotlib.figure import Figure
 from matplotlib.patches import Circle, Rectangle
 from matplotlib.lines import Line2D
+from matplotlib.widgets import Button
 
 PENDULUM_X_SIGN = -1.0
 
@@ -42,8 +43,15 @@ def _resample(
     duration = float(t[-1] - t[0])
     frame_count = max(2, int(np.ceil(duration * fps / speed)) + 1)
     frame_time = np.linspace(t[0], t[-1], frame_count)
+    resampling_states = X.copy()
+    # The plant stores theta wrapped to (-pi, pi]. Interpolating that
+    # representation across the branch cut creates a false backward swing.
+    resampling_states[:, 1] = np.unwrap(resampling_states[:, 1])
     sampled = np.column_stack(
-        [np.interp(frame_time, t, X[:, column]) for column in range(X.shape[1])]
+        [
+            np.interp(frame_time, t, resampling_states[:, column])
+            for column in range(resampling_states.shape[1])
+        ]
     )
     return frame_time, sampled
 
@@ -168,7 +176,7 @@ def animate(
             update_ticks(float(frame_states[0, 0]))
         return update(0)
 
-    return FuncAnimation(
+    animation = FuncAnimation(
         figure,
         update,
         frames=len(frame_time),
@@ -176,6 +184,39 @@ def animate(
         interval=1000.0 / fps,
         blit=True,
     )
+
+    button_axis = figure.add_axes((0.8, 0.02, 0.15, 0.06))
+    pause_button = Button(button_axis, "Pause")
+    paused = False
+    display_artists = (track, cart, rod, bob, overlay, trail_line, *tick_lines)
+
+    def toggle_pause(_event: Any = None) -> None:
+        nonlocal paused
+        paused = not paused
+        if paused:
+            animation.event_source.stop()
+            pause_button.label.set_text("Resume")
+        else:
+            animation.event_source.start()
+            pause_button.label.set_text("Pause")
+        # Blitted artists are omitted by a normal canvas draw. Temporarily
+        # make them regular artists so the current frame remains visible.
+        for artist in display_artists:
+            artist.set_animated(False)
+        figure.canvas.draw()
+        for artist in display_artists:
+            artist.set_animated(True)
+
+    def on_key_press(event: Any) -> None:
+        if event.key == " ":
+            toggle_pause()
+
+    pause_button.on_clicked(toggle_pause)
+    figure.canvas.mpl_connect("key_press_event", on_key_press)
+    # Keep the controls reachable for callers that need programmatic control.
+    animation.pause_button = pause_button  # type: ignore[attr-defined]
+    animation.toggle_pause = toggle_pause  # type: ignore[attr-defined]
+    return animation
 
 
 def save(anim: FuncAnimation, path: str | Path) -> None:
