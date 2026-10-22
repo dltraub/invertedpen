@@ -10,6 +10,7 @@ import numpy as np
 from . import __version__
 from .app import SimulationApplication, SimulationConfig
 from .models.cartpole import CartPoleModel, CartPoleParameters
+from . import plotting
 from .simulation_logging import SimulationLogger
 
 
@@ -39,6 +40,16 @@ def _build_parser() -> argparse.ArgumentParser:
     simulate.add_argument("--tag", default="simulation")
     simulate.add_argument("--log-dir", default="artifacts/runs")
     simulate.add_argument("--no-log", action="store_true")
+    simulate.add_argument(
+        "--no-plot",
+        action="store_true",
+        help="do not show state plots after saving the simulation log",
+    )
+    simulate.add_argument(
+        "--separate-windows",
+        action="store_true",
+        help="show each plotted signal in its own window",
+    )
     simulate.add_argument(
         "--initial-state",
         nargs=4,
@@ -113,6 +124,7 @@ def _run_simulation(args: argparse.Namespace) -> int:
             tag=args.tag,
             metadata={
                 "model": "cartpole",
+                "controller": "zero_input",
                 "parameters": vars(model.parameters),
                 "simulation": {"dt": args.dt, "steps": args.steps},
                 "initial_state": _build_initial_state(args),
@@ -144,6 +156,8 @@ def _run_simulation(args: argparse.Namespace) -> int:
     )
     if logger is not None:
         print(f"log={logger.run_path}")
+        if not args.no_plot:
+            plotting.plot_run(logger.run_path, separate_windows=args.separate_windows)
     return 0
 
 

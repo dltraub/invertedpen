@@ -26,6 +26,85 @@ def test_cli_simulate(capsys) -> None:
     assert "simulation complete; steps=3" in output
 
 
+def test_cli_simulate_no_plot_skips_plotting(tmp_path, monkeypatch) -> None:
+    from invertedpen import plotting
+
+    calls = []
+    monkeypatch.setattr(plotting, "plot_run", lambda path: calls.append(path))
+
+    assert (
+        main(
+            [
+                "simulate",
+                "--steps",
+                "1",
+                "--log-dir",
+                str(tmp_path),
+                "--no-plot",
+            ]
+        )
+        == 0
+    )
+
+    assert calls == []
+
+
+def test_cli_simulate_plots_new_log_by_default(tmp_path, monkeypatch) -> None:
+    from invertedpen import plotting
+
+    calls = []
+    monkeypatch.setattr(
+        plotting, "plot_run", lambda path, separate_windows=False: calls.append(
+            (path, separate_windows)
+        )
+    )
+
+    assert (
+        main(
+            [
+                "simulate",
+                "--steps",
+                "1",
+                "--log-dir",
+                str(tmp_path),
+            ]
+        )
+        == 0
+    )
+
+    assert len(calls) == 1
+    assert calls[0][0].parent == tmp_path
+    assert calls[0][0].joinpath("trajectory.npz").is_file()
+    assert calls[0][1] is False
+
+
+def test_cli_separate_windows_is_forwarded_to_plotting(tmp_path, monkeypatch) -> None:
+    from invertedpen import plotting
+
+    calls = []
+    monkeypatch.setattr(
+        plotting, "plot_run", lambda path, separate_windows=False: calls.append(
+            separate_windows
+        )
+    )
+
+    assert (
+        main(
+            [
+                "simulate",
+                "--steps",
+                "1",
+                "--log-dir",
+                str(tmp_path),
+                "--separate-windows",
+            ]
+        )
+        == 0
+    )
+
+    assert calls == [True]
+
+
 def test_full_initial_state_option(capsys) -> None:
     assert main(
         [

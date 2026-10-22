@@ -77,7 +77,12 @@ python -m invertedpen simulate --steps 100 --tag balance-test
 ```
 
 Use `--log-dir` to select another output directory or `--no-log` for a
-non-persistent run. Logged input samples follow the zero-order-hold convention:
+non-persistent run. Completed logged simulations show four state plots by
+default in one figure with vertically stacked, shared-x subplots. Angles are
+shown in unwrapped degrees. Use `--separate-windows` for one window per signal,
+or `--no-plot` to suppress plotting. A control-input subplot is included when
+the saved controller is not `zero_input`. Logged input samples follow the
+zero-order-hold convention:
 `input[k]` is held over the interval from `time[k]` to `time[k+1]`; the final
 sample repeats the last held input.
 
